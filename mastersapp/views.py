@@ -57,6 +57,7 @@ def get_datacodemaster(request):
 
 @api_view(['POST'])
 def insert_datacodemaster(request):
+    
     debug = ""
     res = {'message_code': 999, 'message_text': 'Functional part is commented.', 'message_data': [], 'message_debug': debug}
      
@@ -84,7 +85,7 @@ def insert_datacodemaster(request):
             res = {
                 'message_code': 1000,
                 'message_text': 'Data code master insert successfully',
-                'message_data':{'DataCodeId': str(datacodemaster.DataCodeId)},
+                'message_data':{'DataCodeId': str(datacodemaster.datacodeid)},
                 'message_debug': [{"Debug": debug}] if debug != "" else []
             }
 
@@ -130,7 +131,7 @@ def update_datacodemaster(request):
             res = {
                 'message_code': 1000,
                 'message_text': 'Data code master updated successfully',
-                'message_data': {'DataCodeId': str(datacodemaster.DataCodeId)},
+                'message_data': {'DataCodeId': str(datacodemaster.datacodeid)},
                 'message_debug': [{"Debug": debug}] if debug != "" else []
             }
 
