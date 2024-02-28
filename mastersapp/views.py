@@ -371,3 +371,46 @@ def update_medicine_instruction(request):
                    'message_debug': [] if debug == "" else [{'Debug': debug}]}
 
     return Response(res, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def get_datacodemaster_byname(request):
+    debug = ""
+    res = {'message_code': 999, 'message_text': 'Functional part is commented.', 'message_data': [], 'message_debug': debug}
+        
+
+    DataCodeName = request.data.get('DataCodeName', '')
+
+    if not DataCodeName:
+        res = {'message_code': 999, 'message_text': 'Data code name is required.'}
+    else:
+        try:
+            
+            # Fetch data using Django ORM
+            datacodemaster = Tbldatacodemaster.objects.filter(
+                Q(datacodename__iexact=DataCodeName)
+            )
+
+            # Serialize the data
+            serializer = DataCodeMasterSerializer(datacodemaster, many=True)
+            result = serializer.data
+
+            if result:
+                res = {
+                    'message_code': 1000,
+                    'message_text': "Data code masters retrieved successfully.",
+                    'message_data': result,
+                    'message_debug': [{"Debug": debug}] if debug != "" else []
+                }
+            else:
+                res = {
+                    'message_code': 999,
+                    'message_text': "Data code masters for this data code name not found.",
+                    'message_data': [],
+                    'message_debug': [{"Debug": debug}] if debug != "" else []
+                }
+
+        except Exception as e:
+            res = {'message_code': 999, 'message_text': f"Error: {str(e)}"}
+
+    return Response(res, status=status.HTTP_200_OK)
