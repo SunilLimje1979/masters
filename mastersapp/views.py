@@ -283,19 +283,28 @@ def insert_medicine_instruction(request):
         res = {'message_code': 999, 'message_text': 'Instruction text is required.'}
     else:
         try:
-            # Create MedicineInstructions instance
-            medicine_instruction = TblmedicineInstructions.objects.create(
-                doctor_id=doctor_id,
-                instruction_language=instruction_language,
-                instruction_text=instruction_text
-            )
+                
+                medicine_data = {'doctor_id':doctor_id,
+                        'instruction_language':instruction_language,
+                         'instruction_text':instruction_text
+                }
+                medicine_instructionSerializer = TblmedicineInstructionsSerializer(data=medicine_data)
+                if medicine_instructionSerializer.is_valid():
+                    instance = medicine_instructionSerializer.save()
+                    last_doctor_medicine_id = instance.doctor_instruction_id
 
-            res = {
-                'message_code': 1000,
-                'message_text': 'Medicine instructions insert successfully.',
-                'message_data': [{'Doctor_Instruction_Id': medicine_instruction.doctor_instruction_id}],
-                'message_debug': [] if debug == "" else [{'Debug': debug}]
-            }
+                    res = {
+                        'message_code': 1000,
+                        'message_text': 'Success',
+                        'message_data': {'last_doctor_medicine_id': str(last_doctor_medicine_id)},
+                        'message_debug': debug if debug else []
+                    }
+                else:
+                    res = {
+                        'message_code': 2000,
+                        'message_text': 'Validation Error',
+                        'message_errors': medicine_instructionSerializer.errors
+                    }
 
         except Exception as e:
             res = {'message_code': 999, 'message_text': f'Unable to insert Medicine instructions. Error: {str(e)}',
@@ -327,21 +336,32 @@ def update_medicine_instruction(request):
     else:
         try:
             # Get MedicineInstructions instance
+            medicine_data = {'doctor_id':doctor_id,
+                        'instruction_language':instruction_language,
+                         'instruction_text':instruction_text
+                }
             medicine_instruction = TblmedicineInstructions.objects.get(doctor_instruction_id=doctor_instruction_id)
 
-            # Update the fields
-            medicine_instruction.doctor_id = doctor_id
-            medicine_instruction.instruction_language = instruction_language
-            medicine_instruction.instruction_text = instruction_text
-            medicine_instruction.save()
 
-            res = {
-                'message_code': 1000,
-                'message_text': 'Medicine instructions update successfully.',
-                'message_data': [{'Doctor_Instruction_Id': medicine_instruction.doctor_instruction_id}],
-                'message_debug': [] if debug == "" else [{'Debug': debug}]
-            }
+            serializer = TblmedicineInstructionsSerializer(medicine_instruction, data=medicine_data, partial=True)
+            if serializer.is_valid():
+                updated_data = serializer.validated_data  # Get the validated data after a successful update
+                serializer.save()
 
+                res = {
+                        'message_code': 1000,
+                        'message_text': 'Success',
+                        'message_data': {'Doctor_Instruction_Id': str(doctor_instruction_id)},
+                        'message_debug': debug if debug else []
+                    }
+            else:
+                    res = {
+                        'message_code': 2000,
+                        'message_text': 'Validation Error',
+                        'message_errors': serializer.errors
+                    }
+
+            
         except TblmedicineInstructions.DoesNotExist:
             res = {'message_code': 999, 'message_text': 'MedicineInstructions not found'}
 
