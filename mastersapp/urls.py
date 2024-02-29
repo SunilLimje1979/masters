@@ -8,6 +8,7 @@ urlpatterns = [
      path("delete_medicine_instruction",delete_medicine_instruction,name='delete_medicine_instruction'),
      path("insert_medicine_instruction",insert_medicine_instruction,name='insert_medicine_instruction'),
      path("update_medicine_instruction",update_medicine_instruction,name='update_medicine_instruction'),
+     path("get_medicine_instructionsbydoctorId",get_medicine_instructionsbydoctorId,name='get_medicine_instructionsbydoctorId'),
      
 
      ######################### Data Code Master ############################

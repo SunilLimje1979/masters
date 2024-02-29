@@ -414,3 +414,47 @@ def get_datacodemaster_byname(request):
             res = {'message_code': 999, 'message_text': f"Error: {str(e)}"}
 
     return Response(res, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def get_medicine_instructionsbydoctorId(request):
+    debug = ""
+    res = {'message_code': 999, 'message_text': 'Functional part is commented.', 'message_data': [], 'message_debug': debug}
+        
+
+    doctor_id = request.data.get('Doctor_Id', '')
+
+    if not doctor_id:
+        res = {'message_code': 999, 'message_text': 'Doctor id is required.'}
+    else:
+        try:
+            
+            # Fetch data using Django ORM
+            medicine_instructionbydoctor_id = TblmedicineInstructions.objects.filter(
+                Q(doctor_id=doctor_id)
+            )
+
+            # Serialize the data
+            serializer = TblmedicineInstructionsSerializer(medicine_instructionbydoctor_id, many=True)
+            result = serializer.data
+
+            if result:
+                res = {
+                    'message_code': 1000,
+                    'message_text': "Medicine instruction by doctor id retrieved successfully.",
+                    'message_data': result,
+                    'message_debug': [{"Debug": debug}] if debug != "" else []
+                }
+            else:
+                res = {
+                    'message_code': 999,
+                    'message_text': "Medicine instruction for this doctor instruction id not found.",
+                    'message_data': [],
+                    'message_debug': [{"Debug": debug}] if debug != "" else []
+                }
+
+        except Exception as e:
+            res = {'message_code': 999, 'message_text': f"Error: {str(e)}"}
+
+    return Response(res, status=status.HTTP_200_OK)
+
