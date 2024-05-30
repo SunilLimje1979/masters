@@ -55,47 +55,47 @@ def get_datacodemaster(request):
     return Response(res, status=status.HTTP_200_OK)
 
 
-@api_view(['POST'])
-def insert_datacodemaster(request):
+# @api_view(['POST'])
+# def insert_datacodemaster(request):
     
-    debug = ""
-    res = {'message_code': 999, 'message_text': 'Functional part is commented.', 'message_data': [], 'message_debug': debug}
+#     debug = ""
+#     res = {'message_code': 999, 'message_text': 'Functional part is commented.', 'message_data': [], 'message_debug': debug}
      
-    # Extract data from request
-    DataCodeName = request.data.get('DataCodeName', '')
-    DataCodeValue = request.data.get('DataCodeValue', '')
-    DataCodeDescription = request.data.get('DataCodeDescription', '')
+#     # Extract data from request
+#     DataCodeName = request.data.get('DataCodeName', '')
+#     DataCodeValue = request.data.get('DataCodeValue', '')
+#     DataCodeDescription = request.data.get('DataCodeDescription', '')
 
-    # Validate appointment_id
-    if not DataCodeName:
-        res = {'message_code': 999,'message_text': 'Data code name is required'}
-    elif not DataCodeValue:
-        res = {'message_code': 999,'message_text': 'Data code value is required'}
-    elif not DataCodeDescription:
-        res = {'message_code': 999,'message_text': 'Data code description is required'}
-    else:
-        try:
+#     # Validate appointment_id
+#     if not DataCodeName:
+#         res = {'message_code': 999,'message_text': 'Data code name is required'}
+#     elif not DataCodeValue:
+#         res = {'message_code': 999,'message_text': 'Data code value is required'}
+#     elif not DataCodeDescription:
+#         res = {'message_code': 999,'message_text': 'Data code description is required'}
+#     else:
+#         try:
             
-            datacodemaster = Tbldatacodemaster.objects.create(
-                datacodename=DataCodeName,
-                datacodevalue=DataCodeValue,
-                datacodedescription=DataCodeDescription
-            )
+#             datacodemaster = Tbldatacodemaster.objects.create(
+#                 datacodename=DataCodeName,
+#                 datacodevalue=DataCodeValue,
+#                 datacodedescription=DataCodeDescription
+#             )
 
-            res = {
-                'message_code': 1000,
-                'message_text': 'Data code master insert successfully',
-                'message_data':{'DataCodeId': str(datacodemaster.datacodeid)},
-                'message_debug': [{"Debug": debug}] if debug != "" else []
-            }
+#             res = {
+#                 'message_code': 1000,
+#                 'message_text': 'Data code master insert successfully',
+#                 'message_data':{'DataCodeId': str(datacodemaster.datacodeid)},
+#                 'message_debug': [{"Debug": debug}] if debug != "" else []
+#             }
 
-        except Tbldatacodemaster.DoesNotExist:
-            res = {'message_code': 999, 'message_text': 'DataCodeMaster not found'}
+#         except Tbldatacodemaster.DoesNotExist:
+#             res = {'message_code': 999, 'message_text': 'DataCodeMaster not found'}
 
-        except Exception as e:
-            res = {'message_code': 999, 'message_text': f'Error: {str(e)}'}
+#         except Exception as e:
+#             res = {'message_code': 999, 'message_text': f'Error: {str(e)}'}
 
-    return Response(res, status=status.HTTP_200_OK)
+#     return Response(res, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
 def update_datacodemaster(request):
@@ -457,4 +457,138 @@ def get_medicine_instructionsbydoctorId(request):
             res = {'message_code': 999, 'message_text': f"Error: {str(e)}"}
 
     return Response(res, status=status.HTTP_200_OK)
+
+
+###########################new updated api of datacodemaster
+@api_view(["POST"])
+def insert_datacodemaster(request):
+    debug = []
+    response_data = {
+        'message_code': 999,
+        'message_text': 'Functional part is commented.',
+        'message_data': [],
+        'message_debug': debug
+    }
+
+    serializer = DataCodeMasterSerializer(data=request.data)
+
+    if serializer.is_valid():
+        serializer.save()
+        response_data['message_code'] = 1000
+        response_data['message_text'] = 'Data code master inserted successfully'
+        response_data['message_data'] = {'datacodemaster_details': serializer.data}
+    else:
+        response_data['message_text'] = 'Invalid data provided.'
+        response_data['message_data'] = serializer.errors
+
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+def get_datacodemaster_by_name_and_doctor(request):
+    debug = []
+    response_data = {
+        'message_code': 999,
+        'message_text': 'Functional part is commented.',
+        'message_data': [],
+        'message_debug': debug
+    }
+
+    datacodename = request.data.get('datacodename', None)
+    doctor_id = request.data.get('doctor_id', None)
+
+    if not datacodename:
+        response_data['message_text'] = 'Data code name is required.'
+        return Response(response_data, status=status.HTTP_200_OK)
+    
+    if doctor_id is not None:
+        datacodes = Tbldatacodemaster.objects.filter(datacodename=datacodename, doctor_id=doctor_id)
+    else:
+        datacodes = Tbldatacodemaster.objects.filter(datacodename=datacodename, doctor_id__isnull=True)
+
+    if not datacodes.exists():
+        response_data['message_text'] = 'No data code masters found.'
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    # Serialize the data
+    serializer = DataCodeMasterSerializer(datacodes, many=True)
+
+    response_data['message_code'] = 1000
+    response_data['message_text'] = 'Data code masters retrieved successfully.'
+    response_data['message_data'] = serializer.data
+
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+# @api_view(["POST"])
+# def update_datacodemaster_byid(request):
+#     debug = []
+#     response_data = {
+#         'message_code': 999,
+#         'message_text': 'Functional part is commented.',
+#         'message_data': [],
+#         'message_debug': debug
+#     }
+
+#     datacodeid = request.data.get('datacodeid', None)
+#     if not datacodeid:
+#         response_data['message_text'] = 'Data code ID is required.'
+#         return Response(response_data, status=status.HTTP_200_OK)
+
+#     try:
+#         datacodemaster = Tbldatacodemaster.objects.get(pk=datacodeid)
+#     except Tbldatacodemaster.DoesNotExist:
+#         response_data['message_text'] = 'Data code master not found.'
+#         return Response(response_data, status=status.HTTP_200_OK)
+
+#     serializer = DataCodeMasterSerializer(datacodemaster, data=request.data, partial=True)
+#     if serializer.is_valid():
+#         serializer.save()
+#         response_data['message_code'] = 1000
+#         response_data['message_text'] = 'Data code master updated successfully.'
+#         response_data['message_data'] = serializer.data
+#         return Response(response_data, status=status.HTTP_200_OK)
+#     else:
+#         response_data['message_text'] = 'Invalid data.'
+#         response_data['message_debug'] = serializer.errors
+#         return Response(response_data, status=status.HTTP_200_OK)
+
+@api_view(["POST"])
+def update_datacodemaster_byid(request):
+    debug = []
+    response_data = {
+        'message_code': 999,
+        'message_text': 'Functional part is commented.',
+        'message_data': [],
+        'message_debug': debug
+    }
+
+    datacodeid = request.data.get('datacodeid', None)
+    datacodename = request.data.get('datacodename', None)
+
+    if not datacodeid:
+        response_data['message_text'] = 'Data code ID is required.'
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    if not datacodename:
+        response_data['message_text'] = 'Data code name is required.'
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    try:
+        datacodemaster = Tbldatacodemaster.objects.get(datacodeid=datacodeid, datacodename=datacodename)
+    except Tbldatacodemaster.DoesNotExist:
+        response_data['message_text'] = 'Data code master not found.'
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    serializer = DataCodeMasterSerializer(datacodemaster, data=request.data, partial=True)
+    if serializer.is_valid():
+        serializer.save()
+        response_data['message_code'] = 1000
+        response_data['message_text'] = 'Data code master updated successfully.'
+        response_data['message_data'] = serializer.data
+        return Response(response_data, status=status.HTTP_200_OK)
+    else:
+        response_data['message_text'] = 'Invalid data.'
+        response_data['message_debug'] = serializer.errors
+        return Response(response_data, status=status.HTTP_200_OK)
 

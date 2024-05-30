@@ -18,6 +18,8 @@ urlpatterns = [
      path("delete_datacodemaster",delete_datacodemaster,name='delete_datacodemaster'),
      
      path("get_datacodemaster_byname",get_datacodemaster_byname,name='get_datacodemaster_byname'),
+     path("get_datacodemaster_by_name_and_doctor/",get_datacodemaster_by_name_and_doctor),
+     path("update_datacodemaster_byid/",update_datacodemaster_byid),
 
      
     
