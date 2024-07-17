@@ -10,6 +10,8 @@ from django.utils import timezone
 from rest_framework.decorators import api_view
 from medicify_project.models import * 
 from medicify_project.serializers import *
+from django.contrib.auth import authenticate
+from datetime import datetime
 # Create your views here.
 
 @api_view(['POST'])
@@ -591,4 +593,269 @@ def update_datacodemaster_byid(request):
         response_data['message_text'] = 'Invalid data.'
         response_data['message_debug'] = serializer.errors
         return Response(response_data, status=status.HTTP_200_OK)
+    
+@api_view(["POST"])
+def login(request):
+    debug = []
+    response_data = {
+        'message_code': 999,
+        'message_text': 'Error occurred.',
+        'message_data': [],
+        'message_debug': debug
+    }
+
+    username = request.data.get('username', None)
+    password = request.data.get('password', None)
+
+    if not username:
+        response_data['message_text'] = 'Username is required.'
+    elif not password:
+        response_data['message_text'] = 'Password is required.'
+    else:
+        user = authenticate(username=username, password=password)
+        if user:
+            response_data['message_code'] = 1000
+            response_data['message_text'] = 'Login successful.'
+            response_data['message_data'] = {'username': username,'user_id':user.id}
+        else:
+            response_data['message_text'] = 'Invalid credentials'
+
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+###########################TableLead and TableFollowUp API's##################
+@api_view(["POST"])
+def insert_lead(request):
+    debug = []
+    response_data = {
+        'message_code': 999,
+        'message_text': 'Error occurred.',
+        'message_data': [],
+        'message_debug': debug
+    }
+
+    try:
+        data = request.data.copy()
+        current_month_year = datetime.now().strftime("%Y-%m")
+        data['lead_month_year'] = current_month_year
+
+        # Convert current date and time to epoch for lead_date_time_stamp
+        current_epoch_time = int(datetime.now().timestamp())
+        data['lead_date_time_stamp'] = current_epoch_time
+
+        # Convert lead_dob to epoch if provided
+        lead_dob = data.get('lead_dob')
+        if lead_dob:
+            try:
+                dt = datetime.strptime(lead_dob, "%Y-%m-%d")
+                epoch = int(dt.timestamp())
+                data['lead_dob'] = epoch
+            except ValueError as e:
+                response_data['message_text'] = 'Invalid date format for lead_dob. It should be YYYY-MM-DD.'
+                response_data['message_debug'].append(str(e))
+                return Response(response_data, status=status.HTTP_200_OK)
+
+        serializer = TblLeadSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            response_data['message_code'] = 1000
+            response_data['message_text'] = 'Lead inserted successfully.'
+            response_data['message_data'] = serializer.data
+        else:
+            response_data['message_text'] = 'Invalid data.'
+            response_data['message_debug'] = serializer.errors
+
+    except Exception as e:
+        response_data['message_text'] = str(e)
+        debug.append(str(e))
+
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+def get_all_leads(request):
+    debug = []
+    response_data = {
+        'message_code': 999,
+        'message_text': 'Error occurred.',
+        'message_data': [],
+        'message_debug': debug
+    }
+
+    try:
+        leads = TblLead.objects.all()
+        serializer = TblLeadSerializer(leads, many=True)
+        lead_data = serializer.data
+
+        # Convert lead_dob from epoch to normal date format
+        for lead in lead_data:
+            lead_dob = lead.get('lead_dob')
+            if lead_dob:
+                try:
+                    normal_date = datetime.fromtimestamp(lead_dob).strftime("%Y-%m-%d")
+                    lead['lead_dob'] = normal_date
+                except Exception as e:
+                    debug.append(f"Error converting epoch to date for lead_id {lead['lead_id']}: {str(e)}")
+
+        response_data['message_code'] = 1000
+        response_data['message_text'] = 'Leads retrieved successfully.'
+        response_data['message_data'] = lead_data
+
+    except Exception as e:
+        response_data['message_text'] = str(e)
+        debug.append(str(e))
+
+    return Response(response_data, status=status.HTTP_200_OK)
+
+@api_view(["POST"])
+def get_lead_by_id(request):
+    debug = []
+    response_data = {
+        'message_code': 999,
+        'message_text': 'Error occurred.',
+        'message_data': [],
+        'message_debug': debug
+    }
+
+    try:
+        lead_id = request.data.get('lead_id')
+        if not lead_id:
+            response_data['message_text'] = 'Lead ID is required.'
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        try:
+            lead = TblLead.objects.get(pk=lead_id)
+        except TblLead.DoesNotExist:
+            response_data['message_text'] = 'Lead not found.'
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        serializer = TblLeadSerializer(lead)
+        lead_data = serializer.data
+
+        # Convert lead_dob from epoch to normal date format
+        lead_dob = lead_data.get('lead_dob')
+        if lead_dob:
+            try:
+                normal_date = datetime.fromtimestamp(lead_dob).strftime("%Y-%m-%d")
+                lead_data['lead_dob'] = normal_date
+            except Exception as e:
+                debug.append(f"Error converting epoch to date for lead_id {lead_id}: {str(e)}")
+
+        response_data['message_code'] = 1000
+        response_data['message_text'] = 'Lead retrieved successfully.'
+        response_data['message_data'] = lead_data
+
+    except Exception as e:
+        response_data['message_text'] = str(e)
+        debug.append(str(e))
+
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+def update_lead(request):
+    debug = []
+    response_data = {
+        'message_code': 999,
+        'message_text': 'Error occurred.',
+        'message_data': [],
+        'message_debug': debug
+    }
+
+    try:
+        lead_id = request.data.get('lead_id')
+        if not lead_id:
+            response_data['message_text'] = 'Lead ID is required.'
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        try:
+            lead = TblLead.objects.get(pk=lead_id)
+        except TblLead.DoesNotExist:
+            response_data['message_text'] = 'Lead not found.'
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        data = request.data.copy()
+
+        # Convert lead_dob to epoch if provided
+        lead_dob = data.get('lead_dob')
+        if lead_dob:
+            try:
+                dt = datetime.strptime(lead_dob, "%Y-%m-%d")
+                epoch = int(dt.timestamp())
+                data['lead_dob'] = epoch
+            except ValueError as e:
+                response_data['message_text'] = 'Invalid date format for lead_dob. It should be YYYY-MM-DD.'
+                response_data['message_debug'].append(str(e))
+                return Response(response_data, status=status.HTTP_200_OK)
+
+        serializer = TblLeadSerializer(lead, data=data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            response_data['message_code'] = 1000
+            response_data['message_text'] = 'Lead updated successfully.'
+            response_data['message_data'] = serializer.data
+        else:
+            response_data['message_text'] = 'Invalid data.'
+            response_data['message_debug'] = serializer.errors
+
+    except Exception as e:
+        response_data['message_text'] = str(e)
+        debug.append(str(e))
+
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+def get_leads_by_handler_or_by_id(request):
+    debug = []
+    response_data = {
+        'message_code': 999,
+        'message_text': 'Error occurred.',
+        'message_data': [],
+        'message_debug': debug
+    }
+
+    try:
+        lead_by_id = request.data.get('lead_by_id')
+        lead_handler_id = request.data.get('lead_handler_id')
+
+        if not lead_by_id and not lead_handler_id:
+            response_data['message_text'] = 'Lead by ID or Lead Handler ID is required.'
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        if lead_by_id:
+            leads = TblLead.objects.filter(lead_by_id=lead_by_id)
+        elif lead_handler_id:
+            leads = TblLead.objects.filter(lead_handler_id=lead_handler_id)
+        else:
+            leads = TblLead.objects.none()
+
+        if not leads.exists():
+            response_data['message_text'] = 'No data found for given ID.'
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        leads_data = []
+        for lead in leads:
+            lead_data = TblLeadSerializer(lead).data
+
+            # Convert lead_dob from epoch to date format
+            lead_dob = lead_data.get('lead_dob')
+            if lead_dob:
+                try:
+                    dt = datetime.fromtimestamp(int(lead_dob))
+                    lead_data['lead_dob'] = dt.strftime("%Y-%m-%d")
+                except ValueError as e:
+                    response_data['message_debug'].append(f"Invalid epoch value for lead_dob: {lead_dob}")
+
+            leads_data.append(lead_data)
+
+        response_data['message_code'] = 1000
+        response_data['message_text'] = 'Leads retrieved successfully.'
+        response_data['message_data'] = leads_data
+
+    except Exception as e:
+        response_data['message_text'] = str(e)
+        debug.append(str(e))
+
+    return Response(response_data, status=status.HTTP_200_OK)
 
