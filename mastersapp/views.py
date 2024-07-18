@@ -621,9 +621,38 @@ def login(request):
             response_data['message_text'] = 'Invalid credentials'
 
     return Response(response_data, status=status.HTTP_200_OK)
+# from django.forms.models import model_to_dict
+# @api_view(["POST"])
+# def login(request):
+#     debug = []
+#     response_data = {
+#         'message_code': 999,
+#         'message_text': 'Error occurred.',
+#         'message_data': [],
+#         'message_debug': debug
+#     }
+
+#     username = request.data.get('username', None)
+#     password = request.data.get('password', None)
+
+#     if not username:
+#         response_data['message_text'] = 'Username is required.'
+#     elif not password:
+#         response_data['message_text'] = 'Password is required.'
+#     else:
+#         user = authenticate(username=username, password=password)
+#         if user:
+#             response_data['message_code'] = 1000
+#             response_data['message_text'] = 'Login successful.'
+#             user_data = model_to_dict(user)  # Convert user instance to dictionary
+#             response_data['message_data'] = user_data
+#         else:
+#             response_data['message_text'] = 'Invalid credentials'
+
+#     return Response(response_data, status=status.HTTP_200_OK)
 
 
-###########################TableLead and TableFollowUp API's##################
+###########################TableLead API's ##################
 @api_view(["POST"])
 def insert_lead(request):
     debug = []
@@ -859,3 +888,125 @@ def get_leads_by_handler_or_by_id(request):
 
     return Response(response_data, status=status.HTTP_200_OK)
 
+
+###########################TblLeadFollowUp API's ##########################
+@api_view(["POST"])
+def insert_lead_followup(request):
+    debug = []
+    response_data = {
+        'message_code': 999,
+        'message_text': 'Error occurred.',
+        'message_data': [],
+        'message_debug': debug
+    }
+
+    try:
+        data = request.data.copy()
+
+        # Check if lead_id, follow_up_by, and follow_up_user_id are provided
+        lead_id = data.get('lead_id')
+        follow_up_by = data.get('follow_up_by')
+        follow_up_user_id = data.get('follow_up_user_id')
+
+        if not lead_id:
+            response_data['message_text'] = 'Lead ID is required.'
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        if not follow_up_by:
+            response_data['message_text'] = 'Follow Up By is required.'
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        if not follow_up_user_id:
+            response_data['message_text'] = 'Follow Up User ID is required.'
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        # Function to convert datetime to epoch
+        def convert_to_epoch(date_time_str):
+            formats = ["%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"]
+            for fmt in formats:
+                try:
+                    dt = datetime.strptime(date_time_str, fmt)
+                    return int(dt.timestamp())
+                except ValueError:
+                    continue
+            raise ValueError(f"Invalid date format: {date_time_str}. Expected formats: {formats}")
+
+        # Convert follow_up_date_time_stamp to epoch if provided
+        follow_up_date_time_stamp = data.get('follow_up_date_time_stamp')
+        if follow_up_date_time_stamp:
+            try:
+                data['follow_up_date_time_stamp'] = convert_to_epoch(follow_up_date_time_stamp)
+            except ValueError as e:
+                response_data['message_text'] = str(e)
+                response_data['message_debug'].append(str(e))
+                return Response(response_data, status=status.HTTP_200_OK)
+
+        # Convert next_follow_up_date_time_stamp to epoch if provided
+        next_follow_up_date_time_stamp = data.get('next_follow_up_date_time_stamp')
+        if next_follow_up_date_time_stamp:
+            try:
+                data['next_follow_up_date_time_stamp'] = convert_to_epoch(next_follow_up_date_time_stamp)
+            except ValueError as e:
+                response_data['message_text'] = str(e)
+                response_data['message_debug'].append(str(e))
+                return Response(response_data, status=status.HTTP_200_OK)
+
+        # Assign current date and time to created_on and convert to epoch
+        current_datetime = datetime.now()
+        data['created_on'] = int(current_datetime.timestamp())
+
+        serializer = TblLeadFollowUpSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            response_data['message_code'] = 1000
+            response_data['message_text'] = 'Lead follow-up inserted successfully.'
+            response_data['message_data'] = serializer.data
+        else:
+            response_data['message_text'] = 'Invalid data.'
+            response_data['message_debug'] = serializer.errors
+
+    except Exception as e:
+        response_data['message_text'] = str(e)
+        debug.append(str(e))
+
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(["POST"])
+def get_followups_by_lead_id(request):
+    debug = []
+    response_data = {
+        'message_code': 999,
+        'message_text': 'Error occurred.',
+        'message_data': [],
+        'message_debug': debug
+    }
+
+    lead_id = request.data.get('lead_id', None)
+
+    if not lead_id:
+        response_data['message_text'] = 'Lead ID is required.'
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    try:
+        follow_ups = TblLeadFollowUp.objects.filter(lead_id=lead_id).order_by('-created_on')
+        
+        if not follow_ups.exists():
+            response_data['message_text'] = 'No data found for given lead ID.'
+        else:
+            follow_up_list = []
+            for follow_up in follow_ups:
+                follow_up_data = TblLeadFollowUpSerializer(follow_up).data
+                follow_up_data['follow_up_date_time_stamp'] = datetime.fromtimestamp(follow_up_data['follow_up_date_time_stamp']).strftime('%d-%m-%Y %H:%M:%S') if follow_up_data['follow_up_date_time_stamp'] else None
+                follow_up_data['next_follow_up_date_time_stamp'] = datetime.fromtimestamp(follow_up_data['next_follow_up_date_time_stamp']).strftime('%d-%m-%Y %H:%M:%S') if follow_up_data['next_follow_up_date_time_stamp'] else None
+                follow_up_list.append(follow_up_data)
+
+            response_data['message_code'] = 1000
+            response_data['message_text'] = 'Success'
+            response_data['message_data'] = follow_up_list
+
+    except Exception as e:
+        response_data['message_text'] = str(e)
+        debug.append(str(e))
+
+    return Response(response_data, status=status.HTTP_200_OK)

@@ -26,6 +26,9 @@ urlpatterns = [
      path('get_lead_by_id/',get_lead_by_id,name='get_lead_by_id'),
      path('update_lead/',update_lead,name='update_lead'),
      path('get_leads_by_handler_or_by_id/',get_leads_by_handler_or_by_id,name='get_leads_by_handler_or_by_id'),
+     path('insert_lead_followup/',insert_lead_followup,name='insert_lead_followup'),
+     path('insert_lead_followup/',insert_lead_followup,name='insert_lead_followup'),
+     path('get_followups_by_lead_id/',get_followups_by_lead_id,name='get_followups_by_lead_id'),
 
      
     
