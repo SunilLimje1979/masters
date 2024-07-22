@@ -972,6 +972,45 @@ def insert_lead_followup(request):
     return Response(response_data, status=status.HTTP_200_OK)
 
 
+# @api_view(["POST"])
+# def get_followups_by_lead_id(request):
+#     debug = []
+#     response_data = {
+#         'message_code': 999,
+#         'message_text': 'Error occurred.',
+#         'message_data': [],
+#         'message_debug': debug
+#     }
+
+#     lead_id = request.data.get('lead_id', None)
+
+#     if not lead_id:
+#         response_data['message_text'] = 'Lead ID is required.'
+#         return Response(response_data, status=status.HTTP_200_OK)
+
+#     try:
+#         follow_ups = TblLeadFollowUp.objects.filter(lead_id=lead_id).order_by('-created_on')
+        
+#         if not follow_ups.exists():
+#             response_data['message_text'] = 'No data found for given lead ID.'
+#         else:
+#             follow_up_list = []
+#             for follow_up in follow_ups:
+#                 follow_up_data = TblLeadFollowUpSerializer(follow_up).data
+#                 follow_up_data['follow_up_date_time_stamp'] = datetime.fromtimestamp(follow_up_data['follow_up_date_time_stamp']).strftime('%d-%m-%Y %H:%M:%S') if follow_up_data['follow_up_date_time_stamp'] else None
+#                 follow_up_data['next_follow_up_date_time_stamp'] = datetime.fromtimestamp(follow_up_data['next_follow_up_date_time_stamp']).strftime('%d-%m-%Y %H:%M:%S') if follow_up_data['next_follow_up_date_time_stamp'] else None
+#                 follow_up_list.append(follow_up_data)
+
+#             response_data['message_code'] = 1000
+#             response_data['message_text'] = 'Success'
+#             response_data['message_data'] = follow_up_list
+
+#     except Exception as e:
+#         response_data['message_text'] = str(e)
+#         debug.append(str(e))
+
+#     return Response(response_data, status=status.HTTP_200_OK)
+
 @api_view(["POST"])
 def get_followups_by_lead_id(request):
     debug = []
@@ -997,8 +1036,8 @@ def get_followups_by_lead_id(request):
             follow_up_list = []
             for follow_up in follow_ups:
                 follow_up_data = TblLeadFollowUpSerializer(follow_up).data
-                follow_up_data['follow_up_date_time_stamp'] = datetime.fromtimestamp(follow_up_data['follow_up_date_time_stamp']).strftime('%d-%m-%Y %H:%M:%S') if follow_up_data['follow_up_date_time_stamp'] else None
-                follow_up_data['next_follow_up_date_time_stamp'] = datetime.fromtimestamp(follow_up_data['next_follow_up_date_time_stamp']).strftime('%d-%m-%Y %H:%M:%S') if follow_up_data['next_follow_up_date_time_stamp'] else None
+                follow_up_data['follow_up_date_time_stamp'] = datetime.fromtimestamp(follow_up_data['follow_up_date_time_stamp']).strftime('%d-%m-%Y %I:%M:%S %p') if follow_up_data['follow_up_date_time_stamp'] else None
+                follow_up_data['next_follow_up_date_time_stamp'] = datetime.fromtimestamp(follow_up_data['next_follow_up_date_time_stamp']).strftime('%d-%m-%Y %I:%M:%S %p') if follow_up_data['next_follow_up_date_time_stamp'] else None
                 follow_up_list.append(follow_up_data)
 
             response_data['message_code'] = 1000
@@ -1010,3 +1049,360 @@ def get_followups_by_lead_id(request):
         debug.append(str(e))
 
     return Response(response_data, status=status.HTTP_200_OK)
+
+
+########################### Get API's for Countries,States and Cities
+@api_view(['POST'])
+def get_all_countries(request):
+    debug = []
+    response_data = {
+        'message_code': 999,
+        'message_text': 'Error occurred.',
+        'message_data': [],
+        'message_debug': debug
+    }
+
+    try:
+        countries = TblCountries.objects.all()
+        if not countries.exists():
+            response_data['message_text'] = 'No countries found.'
+        else:
+            serializer = TblCountriesSerializer(countries, many=True)
+            response_data['message_code'] = 1000
+            response_data['message_text'] = 'Success'
+            response_data['message_data'] = serializer.data
+    except Exception as e:
+        response_data['message_text'] = str(e)
+        debug.append(str(e))
+
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def get_country_by_id(request):
+    debug = []
+    response_data = {
+        'message_code': 999,
+        'message_text': 'Error occurred.',
+        'message_data': [],
+        'message_debug': debug
+    }
+
+    country_id = request.data.get('id', None)
+
+    if not country_id:
+        response_data['message_text'] = 'Country ID is required.'
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    try:
+        country = TblCountries.objects.get(id=country_id)
+        serializer = TblCountriesSerializer(country)
+        response_data['message_code'] = 1000
+        response_data['message_text'] = 'Success'
+        response_data['message_data'] = serializer.data
+    except TblCountries.DoesNotExist:
+        response_data['message_text'] = 'No country found for the given ID.'
+    except Exception as e:
+        response_data['message_text'] = str(e)
+        debug.append(str(e))
+
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def get_all_states(request):
+    debug = []
+    response_data = {
+        'message_code': 999,
+        'message_text': 'Error occurred.',
+        'message_data': [],
+        'message_debug': debug
+    }
+
+    try:
+        states = TblStates.objects.all()
+        serializer = TblStatesSerializer(states, many=True)
+        response_data['message_code'] = 1000
+        response_data['message_text'] = 'Success'
+        response_data['message_data'] = serializer.data
+    except Exception as e:
+        response_data['message_text'] = str(e)
+        debug.append(str(e))
+
+    return Response(response_data, status=status.HTTP_200_OK)
+
+#Using Nested Serailizer
+# @api_view(['POST'])
+# def get_states_by_country_id(request):
+#     debug = []
+#     response_data = {
+#         'message_code': 999,
+#         'message_text': 'Error occurred.',
+#         'message_data': [],
+#         'message_debug': debug
+#     }
+
+#     country_id = request.data.get('country_id', None)
+
+#     if not country_id:
+#         response_data['message_text'] = 'Country ID is required.'
+#         return Response(response_data, status=status.HTTP_200_OK)
+
+#     try:
+#         states = TblStates.objects.filter(country=country_id)
+        
+#         if not states.exists():
+#             response_data['message_text'] = 'No data found for the given country ID.'
+#         else:
+#             serializer = NestedTblStatesSerializer(states, many=True)
+#             response_data['message_code'] = 1000
+#             response_data['message_text'] = 'Success'
+#             response_data['message_data'] = serializer.data
+
+#     except Exception as e:
+#         response_data['message_text'] = str(e)
+#         debug.append(str(e))
+
+#     return Response(response_data, status=status.HTTP_200_OK)
+
+#Using Simple Serializers
+@api_view(['POST'])
+def get_states_by_country_id(request):
+    debug = []
+    response_data = {
+        'message_code': 999,
+        'message_text': 'Error occurred.',
+        'message_data': {},
+        'message_debug': debug
+    }
+
+    country_id = request.data.get('country_id', None)
+
+    if not country_id:
+        response_data['message_text'] = 'Country ID is required.'
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    try:
+        country = TblCountries.objects.filter(id=country_id).first()
+        if not country:
+            response_data['message_text'] = 'No country found for the given ID.'
+            return Response(response_data, status=status.HTTP_200_OK)
+        
+        states = TblStates.objects.filter(country=country_id)
+        
+        if not states.exists():
+            response_data['message_text'] = 'No states found for the given country ID.'
+        else:
+            country_serializer = TblCountriesSerializer(country)
+            states_serializer = TblStatesSerializer(states, many=True)
+            
+            response_data['message_code'] = 1000
+            response_data['message_text'] = 'Success'
+            response_data['message_data'] = {
+                'country': country_serializer.data,
+                'states': states_serializer.data
+            }
+
+    except Exception as e:
+        response_data['message_text'] = str(e)
+        debug.append(str(e))
+
+    return Response(response_data, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def get_state_by_id(request):
+    debug = []
+    response_data = {
+        'message_code': 999,
+        'message_text': 'Error occurred.',
+        'message_data': {},
+        'message_debug': debug
+    }
+
+    state_id = request.data.get('state_id', None)
+
+    if not state_id:
+        response_data['message_text'] = 'State ID is required.'
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    try:
+        state = TblStates.objects.filter(id=state_id).first()
+        if not state:
+            response_data['message_text'] = 'No state found for the given ID.'
+            return Response(response_data, status=status.HTTP_200_OK)
+        
+        country = TblCountries.objects.filter(id=state.country_id).first()
+        
+        if not country:
+            response_data['message_text'] = 'No country found for the given state\'s country ID.'
+            return Response(response_data, status=status.HTTP_200_OK)
+        
+        country_serializer = TblCountriesSerializer(country)
+        state_serializer = TblStatesSerializer(state)
+        
+        response_data['message_code'] = 1000
+        response_data['message_text'] = 'Success'
+        response_data['message_data'] = {
+            'country': country_serializer.data,
+            'state': state_serializer.data
+        }
+
+    except Exception as e:
+        response_data['message_text'] = str(e)
+        debug.append(str(e))
+
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def get_cities_by_state_id(request):
+    debug = []
+    response_data = {
+        'message_code': 999,
+        'message_text': 'Error occurred.',
+        'message_data': {},
+        'message_debug': debug
+    }
+
+    state_id = request.data.get('state_id', None)
+
+    if not state_id:
+        response_data['message_text'] = 'State ID is required.'
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    try:
+        state = TblStates.objects.filter(id=state_id).first()
+        if not state:
+            response_data['message_text'] = 'No state found for the given ID.'
+            return Response(response_data, status=status.HTTP_200_OK)
+        
+        country = TblCountries.objects.filter(id=state.country_id).first()
+        cities = TblCities.objects.filter(state=state_id)
+        
+        if not cities.exists():
+            response_data['message_text'] = 'No cities found for the given state ID.'
+        else:
+            country_serializer = TblCountriesSerializer(country)
+            state_serializer = TblStatesSerializer(state)
+            cities_serializer = TblCitiesSerializer(cities, many=True)
+            
+            response_data['message_code'] = 1000
+            response_data['message_text'] = 'Success'
+            response_data['message_data'] = {
+                'country': country_serializer.data,
+                'state': state_serializer.data,
+                'cities': cities_serializer.data
+            }
+
+    except Exception as e:
+        response_data['message_text'] = str(e)
+        debug.append(str(e))
+
+    return Response(response_data, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def get_city_by_id(request):
+    debug = []
+    response_data = {
+        'message_code': 999,
+        'message_text': 'Error occurred.',
+        'message_data': {},
+        'message_debug': debug
+    }
+
+    city_id = request.data.get('city_id', None)
+
+    if not city_id:
+        response_data['message_text'] = 'City ID is required.'
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    try:
+        city = TblCities.objects.filter(id=city_id).first()
+        if not city:
+            response_data['message_text'] = 'No city found for the given ID.'
+            return Response(response_data, status=status.HTTP_200_OK)
+        
+        state = TblStates.objects.filter(id=city.state_id).first()
+        if not state:
+            response_data['message_text'] = 'No state found for the given city\'s state ID.'
+            return Response(response_data, status=status.HTTP_200_OK)
+        
+        country = TblCountries.objects.filter(id=state.country_id).first()
+        if not country:
+            response_data['message_text'] = 'No country found for the given state\'s country ID.'
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        country_serializer = TblCountriesSerializer(country)
+        state_serializer = TblStatesSerializer(state)
+        city_serializer = TblCitiesSerializer(city)
+        
+        response_data['message_code'] = 1000
+        response_data['message_text'] = 'Success'
+        response_data['message_data'] = {
+            'country': country_serializer.data,
+            'state': state_serializer.data,
+            'city': city_serializer.data
+        }
+
+    except Exception as e:
+        response_data['message_text'] = str(e)
+        debug.append(str(e))
+
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+@api_view(['POST'])
+def get_cities_by_state_and_country(request):
+    debug = []
+    response_data = {
+        'message_code': 999,
+        'message_text': 'Error occurred.',
+        'message_data': {},
+        'message_debug': debug
+    }
+
+    state_id = request.data.get('state_id', None)
+    country_id = request.data.get('country_id', None)
+
+    if not state_id:
+        response_data['message_text'] = 'State ID is required.'
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    if not country_id:
+        response_data['message_text'] = 'Country ID is required.'
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    try:
+        state = TblStates.objects.filter(id=state_id, country_id=country_id).first()
+        if not state:
+            response_data['message_text'] = 'No state found for the given state ID and country ID.'
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        country = TblCountries.objects.filter(id=country_id).first()
+        if not country:
+            response_data['message_text'] = 'No country found for the given country ID.'
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        cities = TblCities.objects.filter(state_id=state_id)
+        if not cities.exists():
+            response_data['message_text'] = 'No cities found for the given state ID.'
+            return Response(response_data, status=status.HTTP_200_OK)
+
+        country_serializer = TblCountriesSerializer(country)
+        state_serializer = TblStatesSerializer(state)
+        cities_serializer = TblCitiesSerializer(cities, many=True)
+
+        response_data['message_code'] = 1000
+        response_data['message_text'] = 'Success'
+        response_data['message_data'] = {
+            'country': country_serializer.data,
+            'state': state_serializer.data,
+            'cities': cities_serializer.data
+        }
+
+    except Exception as e:
+        response_data['message_text'] = str(e)
+        debug.append(str(e))
+
+    return Response(response_data, status=status.HTTP_200_OK)
+

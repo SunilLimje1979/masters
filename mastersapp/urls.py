@@ -29,6 +29,14 @@ urlpatterns = [
      path('insert_lead_followup/',insert_lead_followup,name='insert_lead_followup'),
      path('insert_lead_followup/',insert_lead_followup,name='insert_lead_followup'),
      path('get_followups_by_lead_id/',get_followups_by_lead_id,name='get_followups_by_lead_id'),
+     path('get_all_countries/',get_all_countries,name='get_all_countries'),
+     path('get_country_by_id/',get_country_by_id,name='get_country_by_id'),
+     path('get_all_states/',get_all_states,name='get_all_states'),
+     path('get_state_by_id/',get_state_by_id,name='get_state_by_id'),
+     path('get_states_by_country_id/',get_states_by_country_id,name='get_states_by_country_id'),
+     path('get_cities_by_state_id/',get_cities_by_state_id,name='get_cities_by_state_id'),
+     path('get_city_by_id/',get_city_by_id,name='get_city_by_id'),
+     path('get_cities_by_state_and_country/',get_cities_by_state_and_country,name='get_cities_by_state_and_country'),
 
      
     
