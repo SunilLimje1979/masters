@@ -1050,6 +1050,112 @@ def get_followups_by_lead_id(request):
 
     return Response(response_data, status=status.HTTP_200_OK)
 
+# @api_view(['POST'])
+# def get_followups_by_user_and_app(request):
+#     debug = []
+#     response_data = {
+#         'message_code': 999,
+#         'message_text': 'Error occurred.',
+#         'message_data': [],
+#         'message_debug': debug
+#     }
+
+#     user_id = request.data.get('user_id', None)
+#     app_id = request.data.get('app_id', None)
+
+#     if not user_id or not app_id:
+#         response_data['message_text'] = 'User ID and App ID are required.'
+#         return Response(response_data, status=status.HTTP_200_OK)
+
+#     try:
+#         current_timestamp = int(datetime.now().timestamp())
+#         follow_ups = TblLeadFollowUp.objects.filter(
+#             app_id=app_id,
+#             next_follow_up_date_time_stamp__gte=current_timestamp,
+#             is_deleted=0
+#         ).filter(
+#             Q(follow_up_user_id=user_id) | Q(follow_up_by=user_id)
+#         ).order_by('-next_follow_up_date_time_stamp')[:10]
+
+#         if not follow_ups.exists():
+#             response_data['message_text'] = 'No data found for given user ID and app ID.'
+#         else:
+#             follow_up_list = []
+#             for follow_up in follow_ups:
+#                 follow_up_data = TblLeadFollowUpSerializer(follow_up).data
+#                 follow_up_data['follow_up_date_time_stamp'] = datetime.fromtimestamp(follow_up_data['follow_up_date_time_stamp']).strftime('%d-%m-%Y %H:%M:%S') if follow_up_data['follow_up_date_time_stamp'] else None
+#                 follow_up_data['next_follow_up_date_time_stamp'] = datetime.fromtimestamp(follow_up_data['next_follow_up_date_time_stamp']).strftime('%d-%m-%Y %H:%M:%S') if follow_up_data['next_follow_up_date_time_stamp'] else None
+#                 follow_up_list.append(follow_up_data)
+
+#             response_data['message_code'] = 1000
+#             response_data['message_text'] = 'Success'
+#             response_data['message_data'] = follow_up_list
+
+#     except Exception as e:
+#         response_data['message_text'] = str(e)
+#         debug.append(str(e))
+
+#     return Response(response_data, status=status.HTTP_200_OK)
+
+@api_view(['POST'])
+def get_followups_by_user_and_app(request):
+    debug = []
+    response_data = {
+        'message_code': 999,
+        'message_text': 'Error occurred.',
+        'message_data': [],
+        'message_debug': debug
+    }
+
+    user_id = request.data.get('user_id', None)
+    app_id = request.data.get('app_id', None)
+
+    if not user_id or not app_id:
+        response_data['message_text'] = 'User ID and App ID are required.'
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    try:
+        current_timestamp = int(datetime.now().timestamp())
+        follow_ups = TblLeadFollowUp.objects.filter(
+            app_id=app_id,
+            next_follow_up_date_time_stamp__gte=current_timestamp,
+            is_deleted=0
+        ).filter(
+            Q(follow_up_user_id=user_id) | Q(follow_up_by=user_id)
+        ).select_related('lead_id').order_by('-next_follow_up_date_time_stamp')[:10]
+
+        if not follow_ups.exists():
+            response_data['message_text'] = 'No data found for given user ID and app ID.'
+        else:
+            follow_up_list = []
+            for follow_up in follow_ups:
+                follow_up_data = TblLeadFollowUpSerializer(follow_up).data
+
+                # Embed lead data directly into follow-up data
+                lead_data = {
+                    'lead_name': follow_up.lead_id.lead_name,
+                    'lead_email': follow_up.lead_id.lead_email,
+                    'lead_phone': follow_up.lead_id.lead_contact_no,
+                    # Add other lead fields you need
+                }
+                follow_up_data.update(lead_data)
+
+                # Format timestamp fields
+                follow_up_data['follow_up_date_time_stamp'] = datetime.fromtimestamp(follow_up_data['follow_up_date_time_stamp']).strftime('%d-%m-%Y %H:%M:%S') if follow_up_data['follow_up_date_time_stamp'] else None
+                follow_up_data['next_follow_up_date_time_stamp'] = datetime.fromtimestamp(follow_up_data['next_follow_up_date_time_stamp']).strftime('%d-%m-%Y %H:%M:%S') if follow_up_data['next_follow_up_date_time_stamp'] else None
+                
+                follow_up_list.append(follow_up_data)
+
+            response_data['message_code'] = 1000
+            response_data['message_text'] = 'Success'
+            response_data['message_data'] = follow_up_list
+
+    except Exception as e:
+        response_data['message_text'] = str(e)
+        debug.append(str(e))
+
+    return Response(response_data, status=status.HTTP_200_OK)
+
 
 ########################### Get API's for Countries,States and Cities
 @api_view(['POST'])
@@ -1406,3 +1512,270 @@ def get_cities_by_state_and_country(request):
 
     return Response(response_data, status=status.HTTP_200_OK)
 
+
+@api_view(['POST'])
+def get_all_Authusers(request):
+    try:
+        users = AuthUser.objects.all()
+        user_list = []
+
+        for user in users:
+            user_data = {
+                'id': user.id,
+                'username': user.username,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'email': user.email,
+                'is_staff': user.is_staff,
+                'is_active': user.is_active,
+                'date_joined': user.date_joined.strftime('%Y-%m-%d %H:%M:%S'),
+                # Add other fields you want to include
+            }
+            user_list.append(user_data)
+
+        response_data = {
+            'message_code': 1000,
+            'message_text': 'Users fetched successfully.',
+            'message_data': user_list
+        }
+    except Exception as e:
+        response_data = {
+            'message_code': 999,
+            'message_text': f'Error fetching users. Error: {str(e)}',
+            'message_data': []
+        }
+
+    return Response(response_data, status=status.HTTP_200_OK)
+
+
+##################################Subscription API's
+
+def convert_to_epochvalue(date_time_str):
+    formats = ["%Y-%m-%dT%H:%M", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"]
+    for fmt in formats:
+        try:
+            dt = datetime.strptime(date_time_str, fmt)
+            return int(dt.timestamp()) 
+        except ValueError:
+            continue
+    raise ValueError(f"Invalid date format: {date_time_str}. Expected formats: {formats}")
+
+@api_view(["POST"])
+def insert_doctor_subscription(request):
+    debug = []
+    response_data = {
+        'message_code': 999,
+        'message_text': 'An error occurred.',
+        'message_data': [],
+        'message_debug': debug
+    }
+
+    data = request.data
+
+    # Validate compulsory fields
+    doctor_id = data.get('doctor_id')
+    master_subscription_id = data.get('master_subscription_id')
+    subscription_start_on = data.get('subscription_start_on')
+
+    if not doctor_id or not master_subscription_id:
+        response_data['message_text'] = 'doctor_id and master_subscription_id are required.'
+        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+    # Convert subscription_start_on to epoch value if provided, otherwise use current date and time
+    if subscription_start_on:
+        try:
+            subscription_start_on = convert_to_epochvalue(subscription_start_on)
+            current_datetime = datetime.now()
+            data['created_on'] = int(current_datetime.timestamp())
+        except ValueError as e:
+            response_data['message_text'] = str(e)
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+    else:
+        current_datetime = datetime.now()
+        subscription_start_on = int(current_datetime.timestamp())
+        data['created_on'] = subscription_start_on 
+
+    # Determine subscription_end_on
+    total_days = data.get('total_days')
+    if not total_days:
+        try:
+            master_subscription = TblMasterSubscription.objects.get(pk=master_subscription_id)
+            total_days = master_subscription.total_days
+        except TblMasterSubscription.DoesNotExist:
+            response_data['message_text'] = 'Invalid master_subscription_id. No such subscription found.'
+            return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+    subscription_end_on = subscription_start_on + total_days * 24 * 60 * 60 
+    
+    
+    # Add the computed values to the data
+    data['subscription_start_on'] = subscription_start_on
+    data['subscription_end_on'] = subscription_end_on
+
+    serializer = TblDoctorSubscriptionSerializer(data=data)
+    if serializer.is_valid():
+        serializer.save()
+        response_data['message_code'] = 1000
+        response_data['message_text'] = 'Doctor subscription details inserted successfully.'
+        response_data['message_data'] = serializer.data
+        return Response(response_data, status=status.HTTP_200_OK)
+    else:
+        response_data['message_text'] = 'Validation error.'
+        response_data['message_data'] = serializer.errors
+        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+
+@api_view(["GET"])
+def get_all_master_subscriptions(request):
+    try:
+        subscriptions = TblMasterSubscription.objects.filter(is_deleted=0).order_by('master_subscription_id')
+        if subscriptions.exists():
+            serializer = TblMasterSubscriptionSerializer(subscriptions, many=True)
+            response_data = {
+                'message_code': 1000,
+                'message_text': 'Successfully retrieved all master subscriptions.',
+                'message_data': serializer.data
+            }
+        else:
+            response_data = {
+                'message_code': 999,
+                'message_text': 'No records available.',
+                'message_data': []
+            }
+        return Response(response_data, status=status.HTTP_200_OK)
+    except Exception as e:
+        response_data = {
+            'message_code': 999,
+            'message_text': f'An error occurred: {str(e)}',
+            'message_data': []
+        }
+        return Response(response_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    
+
+
+
+# @api_view(["POST"])
+# def validate_subscription(request):
+#     debug = []
+#     response_data = {
+#         'message_code': 999,
+#         'message_text': 'An error occurred.',
+#         'message_data': [],
+#         'message_debug': debug
+#     }
+
+#     doctor_id = request.data.get('doctor_id')
+#     if not doctor_id:
+#         response_data['message_text'] = 'doctor_id is required.'
+#         return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+#     # Fetch the latest subscription record for the doctor by ordering by id
+#     try:
+#         latest_subscription = TblDoctorSubscription.objects.filter(
+#             doctor_id=doctor_id,
+#             subscription_status=0,
+#             is_deleted=0
+#         ).order_by('-doctor_subscription_id').first()
+        
+#         if not latest_subscription:
+#             response_data['message_text'] = 'No active subscription found for this doctor.'
+#             return Response(response_data, status=status.HTTP_404_NOT_FOUND)
+        
+#         # Get the current date and time (epoch value)
+#         current_datetime = datetime.now()
+#         current_datetime_epoch = int(current_datetime.timestamp())
+
+#         # Convert epoch values to human-readable format without seconds
+#         def epoch_to_date(epoch):
+#             dt = datetime.fromtimestamp(epoch)
+#             return dt.strftime('%Y-%m-%d %H:%M')
+
+#         subscription_start_on_human = epoch_to_date(latest_subscription.subscription_start_on)
+#         subscription_end_on_human = epoch_to_date(latest_subscription.subscription_end_on)
+#         current_datetime_human = epoch_to_date(current_datetime_epoch)
+
+#         # Check if the current time is within the subscription period
+#         if latest_subscription.subscription_start_on <= current_datetime_epoch <= latest_subscription.subscription_end_on:
+#             response_data['message_code'] = 1000
+#             response_data['message_text'] = 'The subscription is valid.'
+#         else:
+#             response_data['message_code'] = 999
+#             response_data['message_text'] = 'The subscription is not valid.'
+
+#         response_data['message_data'] = {
+#             'subscription_start_on': subscription_start_on_human,
+#             'subscription_end_on': subscription_end_on_human,
+#             'current_datetime': current_datetime_human
+#         }
+#         return Response(response_data, status=status.HTTP_200_OK)
+
+#     except Exception as e:
+#         response_data['message_text'] = str(e)
+#         return Response(response_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(["POST"])
+def validate_subscription(request):
+    debug = []
+    response_data = {
+        'message_code': 999,
+        'message_text': 'An error occurred.',
+        'message_data': [],
+        'message_debug': debug
+    }
+
+    doctor_id = request.data.get('doctor_id')
+    if not doctor_id:
+        response_data['message_text'] = 'doctor_id is required.'
+        return Response(response_data, status=status.HTTP_400_BAD_REQUEST)
+
+    # Fetch the latest subscription record for the doctor by ordering by id
+    try:
+        latest_subscription = TblDoctorSubscription.objects.filter(
+            doctor_id=doctor_id,
+            subscription_status=0,
+            is_deleted=0
+        ).order_by('-doctor_subscription_id').first()
+        
+        if not latest_subscription:
+            response_data['message_text'] = 'No active subscription found for this doctor.'
+            return Response(response_data, status=status.HTTP_404_NOT_FOUND)
+        
+        # Get the current date and time (epoch value)
+        current_datetime = datetime.now()
+        current_datetime_epoch = int(current_datetime.timestamp())
+
+        # Convert epoch values to human-readable format without seconds
+        def epoch_to_date(epoch):
+            dt = datetime.fromtimestamp(epoch)
+            return dt.strftime('%Y-%m-%d %H:%M')
+
+        subscription_start_on_human = epoch_to_date(latest_subscription.subscription_start_on)
+        subscription_end_on_human = epoch_to_date(latest_subscription.subscription_end_on)
+        current_datetime_human = epoch_to_date(current_datetime_epoch)
+
+        # Check if the current time is within the subscription period
+        if latest_subscription.subscription_start_on <= current_datetime_epoch <= latest_subscription.subscription_end_on:
+            response_data['message_code'] = 1000
+            response_data['message_text'] = 'The subscription is valid.'
+        else:
+            response_data['message_code'] = 999
+            response_data['message_text'] = 'The subscription is not valid.'
+
+        # Calculate remaining days
+        remaining_days = (latest_subscription.subscription_end_on - current_datetime_epoch) // 86400  # 86400 seconds in a day
+
+        response_data['message_data'] = {
+            'subscription_start_on': subscription_start_on_human,
+            'subscription_end_on': subscription_end_on_human,
+            'current_datetime': current_datetime_human,
+            'remaining_days':remaining_days
+        }
+
+        
+
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    except Exception as e:
+        response_data['message_text'] = str(e)
+        return Response(response_data, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

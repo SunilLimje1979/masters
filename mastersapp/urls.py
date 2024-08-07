@@ -37,7 +37,10 @@ urlpatterns = [
      path('get_cities_by_state_id/',get_cities_by_state_id,name='get_cities_by_state_id'),
      path('get_city_by_id/',get_city_by_id,name='get_city_by_id'),
      path('get_cities_by_state_and_country/',get_cities_by_state_and_country,name='get_cities_by_state_and_country'),
+     path('get_followups_by_user_and_app/',get_followups_by_user_and_app,name='get_followups_by_user_and_app'),
+     path('get_all_Authusers/',get_all_Authusers,name='get_all_Authusers'),
+     path('insert_doctor_subscription/',insert_doctor_subscription,name='insert_doctor_subscription'),
+     path('get_all_master_subscriptions/',get_all_master_subscriptions,name='get_all_master_subscriptions'),
+     path('validate_subscription/',validate_subscription,name='validate_subscription'),
 
-     
-    
 ]
